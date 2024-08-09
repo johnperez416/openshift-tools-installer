@@ -11,6 +11,7 @@ inputs:
       GitHub personal access token.
       This is required if the "source" input is "github".
     required: false
+    default: ${{ github.token }}
   source:
     description: Source from which to download all tools in this step. Can be "github" or "mirror".
     required: false
@@ -66,9 +67,20 @@ inputs:
   yq:
     description: yq - A portable command-line YAML processor.
     required: false
+  chart-verifier:
+    description: chart-verifier - Certifies a Helm chart by checking some of its characteristics.
+    required: false
+  ko:
+    description: ko - Build and deploy Go applications on Kubernetes.
+    required: false
+  preflight:
+    description: |
+      preflight - Commandline interface for validating if OpenShift operator bundles
+      and containers meet minimum requirements for Red Hat OpenShift Certification.
+    required: false
 outputs:
   installed:
     description: 'JSON object describing the versions that were installed.'
 runs:
-  using: node12
+  using: node20
   main: dist/index.js

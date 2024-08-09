@@ -63,7 +63,9 @@ export async function findMatchingClient(source: string, client: InstallableClie
         // these filters are used for camel-k / kamel, which is amd64 only.
         filters = [ filterByOS, filterByZipped ];
     }
-    else if (ClientDetailOverrides[client]?.mirror?.directoryName === "ocp") {
+    // Since directory name for opm is ocp (in case of mirror)
+    // but this filter pipeline is not valid for opm when source is github
+    else if (ClientDetailOverrides[client]?.mirror?.directoryName === "ocp" && source !== GITHUB) {
         // the ocp directory is amd64 only,
         // and we have to filter out the other client we're not interested in
         // - ie remove 'oc' if we're installing 'openshift-install'.
@@ -84,6 +86,15 @@ export async function findMatchingClient(source: string, client: InstallableClie
     else if (client === Inputs.YQ && source === GITHUB) {
         filters = [ filterByOS, filterByArch, filterByNotZipped ];
     }
+    // chart-verifier only publishes a linux binary, but publishes other release
+    // assets that are not in an archive format.
+    else if (client === Inputs.CHART_VERIFIER && source === GITHUB) {
+        filters = [
+            filterByZipped,
+            filterByExecutable.bind(client),
+            filterByVersioned.bind(clientVersion),
+        ];
+    }
     else {
         // these filters are used for all the other clients.
         filters = [ filterByOS, filterByArch, filterByZipped ];
@@ -91,7 +102,13 @@ export async function findMatchingClient(source: string, client: InstallableClie
 
     const filteredClientFiles = filterClients(clientFiles, filters);
 
-    if (filteredClientFiles.length > 1) {
+    let archiveFilename = filteredClientFiles[0];
+
+    // Since tkn-pac binary is also present in the same directory
+    if (filteredClientFiles.length > 1 && client === "tkn" && filteredClientFiles[0].includes("pac")) {
+        archiveFilename = filteredClientFiles[1];
+    }
+    else if (filteredClientFiles.length > 1) {
         ghCore.warning(`Multiple files were found for ${client} that matched the current OS and architecture: `
             + `${filteredClientFiles.join(", ")}. Selecting the first one.`);
     }
@@ -100,11 +117,10 @@ export async function findMatchingClient(source: string, client: InstallableClie
         + ` ${ClientDirectoryUrl ? `under ${ClientDirectoryUrl}` : ""}.`);
     }
 
-    const archiveFilename = filteredClientFiles[0];
     ghCore.info(`Selecting ${archiveFilename}`);
     let archiveUrl;
     if (source === MIRROR) {
-        archiveUrl = `${ClientDirectoryUrl}/${archiveFilename}`;
+        archiveUrl = `${ClientDirectoryUrl}${archiveFilename}`;
     }
     else {
         archiveUrl = getGitHubReleaseAssetPath(client, clientVersion, archiveFilename);

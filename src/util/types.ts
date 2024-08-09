@@ -119,6 +119,26 @@ export const ClientDetailOverrides: { [key in InstallableClient]?: {
             repoSlug: "mikefarah/yq",
         },
     },
+    "chart-verifier": {
+        // Not available on openshift mirror
+        github: {
+            repoSlug: "redhat-certification/chart-verifier",
+            isHashMissing: true,
+        },
+    },
+    ko: {
+        // Not available on openshift mirror
+        github: {
+            repoSlug: "google/ko",
+        },
+    },
+    preflight: {
+        // Not available on OpenShift mirror
+        github: {
+            repoSlug: "redhat-openshift-ecosystem/openshift-preflight",
+            isHashMissing: true,
+        },
+    },
 };
 
 export interface ClientDirectory {
